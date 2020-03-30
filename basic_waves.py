@@ -2,7 +2,7 @@
 # @Author: ZMJ
 # @Date:   2020-03-28 18:26:34
 # @Last Modified by:   ZMJ
-# @Last Modified time: 2020-03-29 18:43:08
+# @Last Modified time: 2020-03-30 22:54:05
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io.wavfile import read as wave_reader
@@ -10,11 +10,10 @@ from scipy.io.wavfile import write as wave_writer
 import pyaudio
 class Wave(object):
 	"""docstring for ClassName"""
-	def __init__(self, freq, framerate):
+	def __init__(self, period, framerate):
 		super(Wave).__init__()
-		self.period = 1 / freq
+		self.period = period
 		self.framerate = framerate
-		self.freq = freq
 
 	def segment(self, start=0, duration=5):
 		"""[summary]
@@ -28,9 +27,9 @@ class Wave(object):
 
 		min_tick = 1 / self.framerate
 		start_pnt = int(start / min_tick)
-		end_pnt = start_pnt + int(self.period * duration / min_tick)
+		end_pnt = start_pnt + int(duration / min_tick)
 
-		wave = Wave(self.freq, end_pnt - start_pnt)	
+		wave = Wave(self.period, end_pnt - start_pnt)	
 		wave.set_values(self.x_coords[start_pnt:end_pnt], self.y_coords[start_pnt:end_pnt])
 		return wave
 
@@ -43,8 +42,8 @@ class Wave(object):
 			sinewave {[type]} -- [return the sumaption of two waves]
 		"""
 		new_y_coords = self.y_coords + wave.y_coords
-		new_freq = self.get_GCD(self.freq, wave.freq)
-		wave = Wave(new_freq, self.framerate)	
+		new_freq = self.get_GCD(1./self.period, wave.period)
+		wave = Wave(1./new_freq, self.framerate)	
 		wave.set_values(self.x_coords, new_y_coords)
 		
 		return wave
@@ -53,24 +52,6 @@ class Wave(object):
 		self.x_coords = x_coords
 		self.y_coords = y_coords
 		self.y_coords=self.y_coords.astype(np.float32)
-
-	def get_LCM(self, number1, number2):
-		"""[summary]
-		return the lowest common multiple of number1 and number2
-		[description]
-		
-		Arguments:
-			number1 {[type]} -- [description]
-			number2 {[type]} -- [description]
-		"""
-
-		lcm=min(number1,number2)
-
-		while True:
-			if lcm % number1 == 0 and lcm % number2 == 0:
-				break
-			lcm+=1
-		return lcm
 
 	def get_GCD(self, number1, number2):
 		"""[summary]
@@ -122,12 +103,12 @@ class SineWave(Wave):
 		offset: the reqiured phase difference (angle, in radians)
 		framerate: the required framerate (FPS), representing the number of samplings
 		"""
-		super(SineWave, self).__init__(freq, framerate)
+		super(SineWave, self).__init__(1/freq, framerate)
 		self.amp = amp
 		self.offset = offset
-		self.period = 1 / freq
+		self.freq = freq
 
-		self.x_coords = np.linspace(0, 1, framerate)
+		self.x_coords = np.linspace(0, duration, framerate)
 		self.w = 2 * np.pi * freq
 		self.y_coords = np.array([amp * np.sin(self.w * x + offset) for x in self.x_coords])
 		self.y_coords=self.y_coords.astype(np.float32)
