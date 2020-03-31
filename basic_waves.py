@@ -2,7 +2,7 @@
 # @Author: ZMJ
 # @Date:   2020-03-28 18:26:34
 # @Last Modified by:   ZMJ
-# @Last Modified time: 2020-03-30 22:54:05
+# @Last Modified time: 2020-03-31 12:19:35
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io.wavfile import read as wave_reader
@@ -42,7 +42,7 @@ class Wave(object):
 			sinewave {[type]} -- [return the sumaption of two waves]
 		"""
 		new_y_coords = self.y_coords + wave.y_coords
-		new_freq = self.get_GCD(1./self.period, wave.period)
+		new_freq = self.get_GCD(1./self.period, 1./wave.period)
 		wave = Wave(1./new_freq, self.framerate)	
 		wave.set_values(self.x_coords, new_y_coords)
 		
@@ -51,7 +51,7 @@ class Wave(object):
 	def set_values(self, x_coords, y_coords):
 		self.x_coords = x_coords
 		self.y_coords = y_coords
-		self.y_coords=self.y_coords.astype(np.float32)
+		self.y_coords = self.y_coords.astype(np.float32)
 
 	def get_GCD(self, number1, number2):
 		"""[summary]
@@ -89,12 +89,19 @@ class Wave(object):
 		stream.stop_stream()  
 		stream.close()  
 		#close PyAudio  
-		p.terminate()  
+		p.terminate()
 
+	def get_frequencies(self):
+		fft_size = self.framerate / (1 / self.period)
+		fft_size = int(np.ceil(fft_size)) 
+		amps = np.fft.rfft(self.y_coords[:fft_size]) / fft_size
+		amps = 20*np.log10(np.clip(np.abs(amps),1e-20,1e100))
+		freqs = np.linspace(0, self.framerate//2, fft_size//2+1)
+		return freqs, amps
 
 class SineWave(Wave):
 	"""docstring for SineWave"""
-	def __init__(self, freq = 25, amp = 1., offset = 0., framerate = 11025, duration = 1):
+	def __init__(self, freq = 100, amp = 1., offset = 0., framerate = 11025, duration = 1):
 		"""[summary]
 		return a sine wave pnts in 1 second
 		[description]
@@ -115,39 +122,37 @@ class SineWave(Wave):
 
 
 if __name__ == '__main__':
-	# sine_wave1 = SineWave(offset = np.pi/2)
-	# sine_wave2 = SineWave(freq = 30, offset = np.pi)
-	# sine_wave = sine_wave1 + sine_wave2
+	sine_wave1 = SineWave(freq = 500, offset = np.pi/2, amp = 10)
+	sine_wave2 = SineWave(freq = 700, offset = np.pi, amp = 30)
+	sine_wave = sine_wave1 + sine_wave2
 
-	# seg1 = sine_wave1.segment(start = 0.1)
-	# seg2 = sine_wave2.segment(start = 0.1)
-	# seg = sine_wave.segment(start = 0.1)
-	# print(sine_wave.freq, seg.freq, sine_wave1.freq, sine_wave2.freq)
-	# plt.subplot(4,1,1)
-	# plt.plot(sine_wave.x_coords, sine_wave.y_coords)
-	# plt.subplot(4,1,2)
-	# plt.plot(seg1.x_coords, seg1.y_coords)
-	# plt.subplot(4,1,3)
-	# plt.plot(seg2.x_coords,seg2.y_coords)
-	# plt.subplot(4,1,4)
-	# plt.plot(seg.x_coords,seg.y_coords)
-	# plt.show()
+	seg1 = sine_wave1.segment(start = 0.1)
+	seg2 = sine_wave2.segment(start = 0.1)
+	seg = sine_wave.segment(start = 0.1)
+	plt.subplot(3,3,1)
+	plt.plot(sine_wave1.x_coords, sine_wave1.y_coords)
+	plt.subplot(3,3,2)
+	plt.plot(sine_wave2.x_coords, sine_wave2.y_coords)
+	plt.subplot(3,3,3)
+	plt.plot(sine_wave.x_coords, sine_wave.y_coords)
+	plt.subplot(3,3,4)
+	plt.plot(seg1.x_coords, seg1.y_coords)
+	plt.subplot(3,3,5)
+	plt.plot(seg2.x_coords, seg2.y_coords)
+	plt.subplot(3,3,6)
+	plt.plot(seg.x_coords, seg.y_coords)
+	plt.subplot(3,3,7)
+	freqs, amps = sine_wave1.get_frequencies()
+	plt.plot(freqs, amps)
+	plt.subplot(3,3,8)
+	freqs, amps = sine_wave2.get_frequencies()
+	plt.plot(freqs, amps)
+	plt.subplot(3,3,9)
+	freqs, amps = sine_wave.get_frequencies()
+	plt.plot(freqs, amps)
+	plt.show()
 
-	wave1 = SineWave(freq = 523, duration = 5)
-	wave2 = SineWave(freq = 587, duration = 5)
-	wave3 = SineWave(freq = 659, duration = 5)
-	wave4 = SineWave(freq = 698, duration = 5)
-	wave5 = SineWave(freq = 783, duration = 5)
-	wave6 = SineWave(freq = 880, duration = 5)
-	wave7 = SineWave(freq = 987, duration = 5)
 
-	wave1.play_wave()
-	wave2.play_wave()
-	wave3.play_wave()
-	wave4.play_wave()
-	wave5.play_wave()
-	wave6.play_wave()
-	wave7.play_wave()
 
 
 
