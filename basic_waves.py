@@ -2,7 +2,7 @@
 # @Author: ZMJ
 # @Date:   2020-03-28 18:26:34
 # @Last Modified by:   ZMJ
-# @Last Modified time: 2020-03-31 12:19:35
+# @Last Modified time: 2020-04-02 10:34:56
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io.wavfile import read as wave_reader
@@ -95,7 +95,8 @@ class Wave(object):
 		fft_size = self.framerate / (1 / self.period)
 		fft_size = int(np.ceil(fft_size)) 
 		amps = np.fft.rfft(self.y_coords[:fft_size]) / fft_size
-		amps = 20*np.log10(np.clip(np.abs(amps),1e-20,1e100))
+		dbs = 20*np.log10(np.clip(np.abs(amps),1e-20,1e100))
+		amps = np.abs(amps)
 		freqs = np.linspace(0, self.framerate//2, fft_size//2+1)
 		return freqs, amps
 
@@ -120,10 +121,22 @@ class SineWave(Wave):
 		self.y_coords = np.array([amp * np.sin(self.w * x + offset) for x in self.x_coords])
 		self.y_coords=self.y_coords.astype(np.float32)
 
+class TriangleWave(Wave):
+	"""docstring for TriangleWave"""
+	def __init__(self, freq = 100, amp = 1, offset = 0, framerate = 11025, duration = 1):
+		super(TriangleWave, self).__init__(1/freq, framerate)
+		self.amp = amp
+		self.offset = offset
+		self.freq = freq	
+
+		self.x_coords = np.linspace(0, duration, framerate)
+		cycles = self.freq * self.x_coords + self.offset/(2*np.pi)
+		fracs, _ = np.modf(cycles)
+		self.y_coords =  (fracs - 0.5)/0.5*amp	
 
 if __name__ == '__main__':
-	sine_wave1 = SineWave(freq = 500, offset = np.pi/2, amp = 10)
-	sine_wave2 = SineWave(freq = 700, offset = np.pi, amp = 30)
+	sine_wave1 = TriangleWave(freq = 10, offset = np.pi/2, amp = 10)
+	sine_wave2 = TriangleWave(freq = 20, offset = np.pi, amp = 30)
 	sine_wave = sine_wave1 + sine_wave2
 
 	seg1 = sine_wave1.segment(start = 0.1)
