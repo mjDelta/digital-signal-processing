@@ -2,18 +2,54 @@
 # @Author: ZMJ
 # @Date:   2020-03-28 18:26:34
 # @Last Modified by:   ZMJ
-# @Last Modified time: 2020-04-02 10:34:56
+# @Last Modified time: 2020-04-03 09:30:15
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io.wavfile import read as wave_reader
 from scipy.io.wavfile import write as wave_writer
 import pyaudio
-class Wave(object):
+class Signal(object):
+	"""docstring for Signal"""
+	def __init__(self, framerate):
+		super(Signal, self).__init__()
+		self.framerate = framerate
+
+	def set_values(self, x_coords, y_coords):
+		self.x_coords = x_coords
+		self.y_coords = y_coords
+		self.y_coords = self.y_coords.astype(np.float32)
+
+	# def get_frequencies(self):
+	# 	fft_size = self.framerate / (1 / self.period)
+	# 	fft_size = int(np.ceil(fft_size)) 
+	# 	amps = np.fft.rfft(self.y_coords[:fft_size]) / fft_size
+	# 	dbs = 20*np.log10(np.clip(np.abs(amps),1e-20,1e100))
+	# 	amps = np.abs(amps)
+	# 	freqs = np.linspace(0, self.framerate//2, fft_size//2+1)
+	# 	return freqs, amps
+	def get_frequencies(self):
+		"""[summary]
+		
+		[description]
+		
+		Arguments:
+			fs {[type]} -- [the sampling frequency for fft]
+		"""
+		freqs = range(0, self.framerate)
+		amps = np.abs(np.fft.fft(self.y_coords)*2/self.framerate)
+		##normalization
+		amps /= self.framerate
+		##half
+		half = self.framerate//2
+		freqs = freqs[:half]
+		amps = amps[:half]
+		return freqs, amps
+
+class Wave(Signal):
 	"""docstring for ClassName"""
 	def __init__(self, period, framerate):
-		super(Wave).__init__()
+		super(Wave, self).__init__(framerate)
 		self.period = period
-		self.framerate = framerate
 
 	def segment(self, start=0, duration=5):
 		"""[summary]
@@ -27,31 +63,17 @@ class Wave(object):
 
 		min_tick = 1 / self.framerate
 		start_pnt = int(start / min_tick)
-		end_pnt = start_pnt + int(duration / min_tick)
-
-		wave = Wave(self.period, end_pnt - start_pnt)	
+		end_pnt = start_pnt + int(self.period*duration / min_tick)
+		print(min_tick, start_pnt, end_pnt)
+		wave = Wave(self.period, self.framerate)	
 		wave.set_values(self.x_coords[start_pnt:end_pnt], self.y_coords[start_pnt:end_pnt])
 		return wave
 
 	def __add__(self, wave):
-		"""[summary]
-		
-		[description]
-		
-		Arguments:
-			sinewave {[type]} -- [return the sumaption of two waves]
-		"""
 		new_y_coords = self.y_coords + wave.y_coords
-		new_freq = self.get_GCD(1./self.period, 1./wave.period)
-		wave = Wave(1./new_freq, self.framerate)	
-		wave.set_values(self.x_coords, new_y_coords)
-		
-		return wave
-
-	def set_values(self, x_coords, y_coords):
-		self.x_coords = x_coords
-		self.y_coords = y_coords
-		self.y_coords = self.y_coords.astype(np.float32)
+		signal = Signal(self.framerate)
+		signal.set_values(self.x_coords, new_y_coords)
+		return signal
 
 	def get_GCD(self, number1, number2):
 		"""[summary]
@@ -68,6 +90,7 @@ class Wave(object):
 				break
 			gcd += 1
 		return gcd
+
 
 	def write_wave(self, save_path):
 		double_channels =  np.zeros((len(self.y_coords), 2))
@@ -91,14 +114,7 @@ class Wave(object):
 		#close PyAudio  
 		p.terminate()
 
-	def get_frequencies(self):
-		fft_size = self.framerate / (1 / self.period)
-		fft_size = int(np.ceil(fft_size)) 
-		amps = np.fft.rfft(self.y_coords[:fft_size]) / fft_size
-		dbs = 20*np.log10(np.clip(np.abs(amps),1e-20,1e100))
-		amps = np.abs(amps)
-		freqs = np.linspace(0, self.framerate//2, fft_size//2+1)
-		return freqs, amps
+
 
 class SineWave(Wave):
 	"""docstring for SineWave"""
@@ -134,14 +150,26 @@ class TriangleWave(Wave):
 		fracs, _ = np.modf(cycles)
 		self.y_coords =  (fracs - 0.5)/0.5*amp	
 
+class SquareWave(Wave):
+	"""docstring for SquareWave"""
+	def __init__(self, freq = 100, amp = 1, offset = 0, framerate = 11025, duration = 1):
+		super(SquareWave, self).__init__(1/freq, framerate)
+		self.amp = amp
+		self.offset = offset
+		self.freq = freq	
+
+		self.x_coords = np.linspace(0, duration, framerate)
+		cycles = self.freq * self.x_coords + self.offset/(2*np.pi)
+		fracs, _ = np.modf(cycles)
+		self.y_coords =  np.sign(fracs - 0.5)*self.amp
+		
 if __name__ == '__main__':
-	sine_wave1 = TriangleWave(freq = 10, offset = np.pi/2, amp = 10)
-	sine_wave2 = TriangleWave(freq = 20, offset = np.pi, amp = 30)
+	sine_wave1 = SquareWave(freq = 200, offset = np.pi, amp = 10, framerate = 10000)
+	sine_wave2 = SquareWave(freq = 400, offset = np.pi, amp = 30, framerate = 10000)
 	sine_wave = sine_wave1 + sine_wave2
 
 	seg1 = sine_wave1.segment(start = 0.1)
 	seg2 = sine_wave2.segment(start = 0.1)
-	seg = sine_wave.segment(start = 0.1)
 	plt.subplot(3,3,1)
 	plt.plot(sine_wave1.x_coords, sine_wave1.y_coords)
 	plt.subplot(3,3,2)
@@ -153,7 +181,8 @@ if __name__ == '__main__':
 	plt.subplot(3,3,5)
 	plt.plot(seg2.x_coords, seg2.y_coords)
 	plt.subplot(3,3,6)
-	plt.plot(seg.x_coords, seg.y_coords)
+	plt.plot(sine_wave.x_coords, sine_wave.y_coords)
+	plt.xlim(0.1, 0.2)
 	plt.subplot(3,3,7)
 	freqs, amps = sine_wave1.get_frequencies()
 	plt.plot(freqs, amps)
