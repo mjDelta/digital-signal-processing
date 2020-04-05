@@ -2,7 +2,7 @@
 # @Author: ZMJ
 # @Date:   2020-03-28 18:26:34
 # @Last Modified by:   ZMJ
-# @Last Modified time: 2020-04-05 19:12:01
+# @Last Modified time: 2020-04-05 21:13:09
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io.wavfile import read as wave_reader
@@ -35,12 +35,13 @@ class Signal(object):
 		Arguments:
 			fs {[type]} -- [the sampling frequency for fft]
 		"""
-		freqs = range(0, self.framerate)
-		amps = np.abs(np.fft.fft(self.y_coords)*2/self.framerate)
+		fft_size = self.framerate
+		freqs = np.linspace(0, fft_size, len(self.x_coords))
+		amps = np.abs(np.fft.fft(self.y_coords))
 		##normalization
-		amps /= self.framerate
+		# amps /= len(self.x_coords)
 		##half
-		half = self.framerate//2
+		half = len(self.x_coords)//2
 		freqs = freqs[:half]
 		amps = amps[:half]
 		return freqs, amps
@@ -65,7 +66,7 @@ class Signal(object):
 		stream.stop_stream()  
 		stream.close()  
 		#close PyAudio  
-		p.terminate()
+		p.terminate()		
 
 class Wave(Signal):
 	"""docstring for ClassName"""
@@ -86,7 +87,6 @@ class Wave(Signal):
 		min_tick = 1 / self.framerate
 		start_pnt = int(start / min_tick)
 		end_pnt = start_pnt + int(self.period*duration / min_tick)
-		print(min_tick, start_pnt, end_pnt)
 		wave = Wave(self.period, self.framerate)	
 		wave.set_values(self.x_coords[start_pnt:end_pnt], self.y_coords[start_pnt:end_pnt])
 		return wave
@@ -162,7 +162,7 @@ class SquareWave(Wave):
 
 class Chirp(Signal):
 	"""docstring for Chirp"""
-	def __init__(self, start_freq = 100, end_freq = 1000, amp = 1, offset = 0, framerate = 11025, duration = 1):
+	def __init__(self, start_freq = 220, end_freq = 440, amp = 1, offset = 0, framerate = 11025, duration = 1):
 		super(Chirp, self).__init__(framerate)
 		self.amp = amp
 		self.offset = offset
@@ -175,42 +175,60 @@ class Chirp(Signal):
 		phases = np.cumsum(dphis)
 		phases = np.insert(phases, 0, 0)
 		self.y_coords = self.amp*np.sin(phases)
+
+class ExpoChirp(Signal):
+	"""docstring for ExpoChirp"""
+	def __init__(self, start_freq = 220, end_freq = 440, amp = 1, offset = 0, framerate = 11025, duration = 1):
+		super(ExpoChirp, self).__init__(framerate)
+		self.amp = amp
+		self.offset = offset
+
+		##generate exponential chirp signal 
+		self.x_coords = np.linspace(0, duration, duration*framerate)
+		freqs = np.logspace(np.log10(start_freq), np.log10(end_freq), duration*framerate-1)
+		dts = np.diff(self.x_coords)
+		dphis = 2*np.pi*freqs*dts+offset
+		phases = np.cumsum(dphis)
+		phases = np.insert(phases, 0, 0)
+		self.y_coords = self.amp*np.sin(phases)
+		
 				
 if __name__ == '__main__':
-	# wave1 = SineWave()
-	# wave2 = SquareWave()
-	# wave3 = TriangleWave()
-	# wave4 = Chirp()
+	wave1 = SineWave()
+	wave2 = SquareWave()
+	wave3 = TriangleWave()
+	wave4 = Chirp()
 
-	# plt.subplot(2,4,1)
-	# plt.plot(wave1.x_coords, wave1.y_coords)
-	# plt.subplot(2,4,2)
-	# plt.plot(wave2.x_coords, wave2.y_coords)
-	# plt.subplot(2,4,3)
-	# plt.plot(wave3.x_coords, wave3.y_coords)
-	# plt.subplot(2,4,4)
-	# plt.plot(wave4.x_coords, wave4.y_coords)
-	# plt.subplot(2,4,5)
-	# freqs, amps = wave1.get_frequencies()
-	# plt.plot(freqs, amps)
-	# plt.xlim(0, 1000)
-	# plt.subplot(2,4,6)
-	# freqs, amps = wave2.get_frequencies()
-	# plt.plot(freqs, amps)
-	# plt.xlim(0, 1000)
-	# plt.subplot(2,4,7)
-	# freqs, amps = wave3.get_frequencies()
-	# plt.plot(freqs, amps)
-	# plt.subplot(2,4,8)
-	# freqs, amps = wave4.get_frequencies()
-	# plt.plot(freqs, amps)
-	# plt.xlim(0, 1000)	
-	# plt.show()
+	plt.subplot(2,4,1)
+	plt.plot(wave1.x_coords, wave1.y_coords)
+	plt.subplot(2,4,2)
+	plt.plot(wave2.x_coords, wave2.y_coords)
+	plt.subplot(2,4,3)
+	plt.plot(wave3.x_coords, wave3.y_coords)
+	plt.subplot(2,4,4)
+	plt.plot(wave4.x_coords, wave4.y_coords)
+	plt.subplot(2,4,5)
+	freqs, amps = wave1.get_frequencies()
+	plt.plot(freqs, amps)
+	plt.xlim(0, 1000)
+	plt.subplot(2,4,6)
+	freqs, amps = wave2.get_frequencies()
+	plt.plot(freqs, amps)
+	plt.xlim(0, 1000)
+	plt.subplot(2,4,7)
+	freqs, amps = wave3.get_frequencies()
+	plt.plot(freqs, amps)
+	plt.subplot(2,4,8)
+	freqs, amps = wave4.get_frequencies()
+	plt.plot(freqs, amps)
+	plt.xlim(0, 1000)	
+	plt.show()
 
-	wave5 = Chirp(duration = 30)
-	wave5.play_wave()
+	# wave5 = Chirp(duration = 10)
+	# wave5.play_wave()
 
-
+	# wave6 = ExpoChirp(duration = 10)
+	# wave6.play_wave()
 
 
 
