@@ -2,7 +2,7 @@
 # @Author: ZMJ
 # @Date:   2020-03-28 18:26:34
 # @Last Modified by:   ZMJ
-# @Last Modified time: 2020-04-03 09:30:15
+# @Last Modified time: 2020-04-05 18:54:10
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io.wavfile import read as wave_reader
@@ -162,36 +162,52 @@ class SquareWave(Wave):
 		cycles = self.freq * self.x_coords + self.offset/(2*np.pi)
 		fracs, _ = np.modf(cycles)
 		self.y_coords =  np.sign(fracs - 0.5)*self.amp
-		
-if __name__ == '__main__':
-	sine_wave1 = SquareWave(freq = 200, offset = np.pi, amp = 10, framerate = 10000)
-	sine_wave2 = SquareWave(freq = 400, offset = np.pi, amp = 30, framerate = 10000)
-	sine_wave = sine_wave1 + sine_wave2
 
-	seg1 = sine_wave1.segment(start = 0.1)
-	seg2 = sine_wave2.segment(start = 0.1)
-	plt.subplot(3,3,1)
-	plt.plot(sine_wave1.x_coords, sine_wave1.y_coords)
-	plt.subplot(3,3,2)
-	plt.plot(sine_wave2.x_coords, sine_wave2.y_coords)
-	plt.subplot(3,3,3)
-	plt.plot(sine_wave.x_coords, sine_wave.y_coords)
-	plt.subplot(3,3,4)
-	plt.plot(seg1.x_coords, seg1.y_coords)
-	plt.subplot(3,3,5)
-	plt.plot(seg2.x_coords, seg2.y_coords)
-	plt.subplot(3,3,6)
-	plt.plot(sine_wave.x_coords, sine_wave.y_coords)
-	plt.xlim(0.1, 0.2)
-	plt.subplot(3,3,7)
-	freqs, amps = sine_wave1.get_frequencies()
+class Chirp(Signal):
+	"""docstring for Chirp"""
+	def __init__(self, start_freq = 100, end_freq = 800, amp = 1, offset = 0, framerate = 11025, duration = 1):
+		super(Chirp, self).__init__(framerate)
+		self.amp = amp
+		self.offset = offset
+
+		##generate chirp signal 
+		self.x_coords = np.linspace(0, duration, framerate)
+		freqs = np.linspace(start_freq, end_freq, framerate-1)
+		dts = np.diff(self.x_coords)
+		dphis = 2*np.pi*freqs*dts+offset
+		phases = np.cumsum(dphis)
+		phases = np.insert(phases, 0, 0)
+		self.y_coords = self.amp*np.sin(phases)
+				
+if __name__ == '__main__':
+	wave1 = SineWave()
+	wave2 = SquareWave()
+	wave3 = TriangleWave()
+	wave4 = Chirp()
+
+	plt.subplot(2,4,1)
+	plt.plot(wave1.x_coords, wave1.y_coords)
+	plt.subplot(2,4,2)
+	plt.plot(wave2.x_coords, wave2.y_coords)
+	plt.subplot(2,4,3)
+	plt.plot(wave3.x_coords, wave3.y_coords)
+	plt.subplot(2,4,4)
+	plt.plot(wave4.x_coords, wave4.y_coords)
+	plt.subplot(2,4,5)
+	freqs, amps = wave1.get_frequencies()
 	plt.plot(freqs, amps)
-	plt.subplot(3,3,8)
-	freqs, amps = sine_wave2.get_frequencies()
+	plt.xlim(0, 1000)
+	plt.subplot(2,4,6)
+	freqs, amps = wave2.get_frequencies()
 	plt.plot(freqs, amps)
-	plt.subplot(3,3,9)
-	freqs, amps = sine_wave.get_frequencies()
+	plt.xlim(0, 1000)
+	plt.subplot(2,4,7)
+	freqs, amps = wave3.get_frequencies()
 	plt.plot(freqs, amps)
+	plt.subplot(2,4,8)
+	freqs, amps = wave4.get_frequencies()
+	plt.plot(freqs, amps)
+	plt.xlim(0, 1000)	
 	plt.show()
 
 
