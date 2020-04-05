@@ -2,7 +2,7 @@
 # @Author: ZMJ
 # @Date:   2020-03-28 18:26:34
 # @Last Modified by:   ZMJ
-# @Last Modified time: 2020-04-05 18:54:10
+# @Last Modified time: 2020-04-05 19:12:01
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io.wavfile import read as wave_reader
@@ -44,6 +44,28 @@ class Signal(object):
 		freqs = freqs[:half]
 		amps = amps[:half]
 		return freqs, amps
+
+	def write_wave(self, save_path):
+		double_channels =  np.zeros((len(self.y_coords), 2))
+		double_channels[:,0] = self.y_coords
+		double_channels[:,1] = self.y_coords
+		wave_writer(save_path, self.framerate, double_channels)
+
+	def play_wave(self):
+		#instantiate PyAudio  
+		p = pyaudio.PyAudio()  
+		#open stream  
+		stream = p.open(format = pyaudio.paFloat32,  
+		                channels = 1,  
+		                rate = self.framerate,  
+		                output = True) 
+		#play stream  
+		stream.write(self.y_coords) 
+		#stop stream  
+		stream.stop_stream()  
+		stream.close()  
+		#close PyAudio  
+		p.terminate()
 
 class Wave(Signal):
 	"""docstring for ClassName"""
@@ -91,31 +113,6 @@ class Wave(Signal):
 			gcd += 1
 		return gcd
 
-
-	def write_wave(self, save_path):
-		double_channels =  np.zeros((len(self.y_coords), 2))
-		double_channels[:,0] = self.y_coords
-		double_channels[:,1] = self.y_coords
-		wave_writer(save_path, self.framerate, double_channels)
-
-	def play_wave(self):
-		#instantiate PyAudio  
-		p = pyaudio.PyAudio()  
-		#open stream  
-		stream = p.open(format = pyaudio.paFloat32,  
-		                channels = 1,  
-		                rate = self.framerate,  
-		                output = True) 
-		#play stream  
-		stream.write(self.y_coords) 
-		#stop stream  
-		stream.stop_stream()  
-		stream.close()  
-		#close PyAudio  
-		p.terminate()
-
-
-
 class SineWave(Wave):
 	"""docstring for SineWave"""
 	def __init__(self, freq = 100, amp = 1., offset = 0., framerate = 11025, duration = 1):
@@ -132,7 +129,7 @@ class SineWave(Wave):
 		self.offset = offset
 		self.freq = freq
 
-		self.x_coords = np.linspace(0, duration, framerate)
+		self.x_coords = np.linspace(0, duration, duration*framerate)
 		self.w = 2 * np.pi * freq
 		self.y_coords = np.array([amp * np.sin(self.w * x + offset) for x in self.x_coords])
 		self.y_coords=self.y_coords.astype(np.float32)
@@ -145,7 +142,7 @@ class TriangleWave(Wave):
 		self.offset = offset
 		self.freq = freq	
 
-		self.x_coords = np.linspace(0, duration, framerate)
+		self.x_coords = np.linspace(0, duration, duration*framerate)
 		cycles = self.freq * self.x_coords + self.offset/(2*np.pi)
 		fracs, _ = np.modf(cycles)
 		self.y_coords =  (fracs - 0.5)/0.5*amp	
@@ -158,21 +155,21 @@ class SquareWave(Wave):
 		self.offset = offset
 		self.freq = freq	
 
-		self.x_coords = np.linspace(0, duration, framerate)
+		self.x_coords = np.linspace(0, duration, duration*framerate)
 		cycles = self.freq * self.x_coords + self.offset/(2*np.pi)
 		fracs, _ = np.modf(cycles)
 		self.y_coords =  np.sign(fracs - 0.5)*self.amp
 
 class Chirp(Signal):
 	"""docstring for Chirp"""
-	def __init__(self, start_freq = 100, end_freq = 800, amp = 1, offset = 0, framerate = 11025, duration = 1):
+	def __init__(self, start_freq = 100, end_freq = 1000, amp = 1, offset = 0, framerate = 11025, duration = 1):
 		super(Chirp, self).__init__(framerate)
 		self.amp = amp
 		self.offset = offset
 
 		##generate chirp signal 
-		self.x_coords = np.linspace(0, duration, framerate)
-		freqs = np.linspace(start_freq, end_freq, framerate-1)
+		self.x_coords = np.linspace(0, duration, duration*framerate)
+		freqs = np.linspace(start_freq, end_freq, duration*framerate-1)
 		dts = np.diff(self.x_coords)
 		dphis = 2*np.pi*freqs*dts+offset
 		phases = np.cumsum(dphis)
@@ -180,36 +177,38 @@ class Chirp(Signal):
 		self.y_coords = self.amp*np.sin(phases)
 				
 if __name__ == '__main__':
-	wave1 = SineWave()
-	wave2 = SquareWave()
-	wave3 = TriangleWave()
-	wave4 = Chirp()
+	# wave1 = SineWave()
+	# wave2 = SquareWave()
+	# wave3 = TriangleWave()
+	# wave4 = Chirp()
 
-	plt.subplot(2,4,1)
-	plt.plot(wave1.x_coords, wave1.y_coords)
-	plt.subplot(2,4,2)
-	plt.plot(wave2.x_coords, wave2.y_coords)
-	plt.subplot(2,4,3)
-	plt.plot(wave3.x_coords, wave3.y_coords)
-	plt.subplot(2,4,4)
-	plt.plot(wave4.x_coords, wave4.y_coords)
-	plt.subplot(2,4,5)
-	freqs, amps = wave1.get_frequencies()
-	plt.plot(freqs, amps)
-	plt.xlim(0, 1000)
-	plt.subplot(2,4,6)
-	freqs, amps = wave2.get_frequencies()
-	plt.plot(freqs, amps)
-	plt.xlim(0, 1000)
-	plt.subplot(2,4,7)
-	freqs, amps = wave3.get_frequencies()
-	plt.plot(freqs, amps)
-	plt.subplot(2,4,8)
-	freqs, amps = wave4.get_frequencies()
-	plt.plot(freqs, amps)
-	plt.xlim(0, 1000)	
-	plt.show()
+	# plt.subplot(2,4,1)
+	# plt.plot(wave1.x_coords, wave1.y_coords)
+	# plt.subplot(2,4,2)
+	# plt.plot(wave2.x_coords, wave2.y_coords)
+	# plt.subplot(2,4,3)
+	# plt.plot(wave3.x_coords, wave3.y_coords)
+	# plt.subplot(2,4,4)
+	# plt.plot(wave4.x_coords, wave4.y_coords)
+	# plt.subplot(2,4,5)
+	# freqs, amps = wave1.get_frequencies()
+	# plt.plot(freqs, amps)
+	# plt.xlim(0, 1000)
+	# plt.subplot(2,4,6)
+	# freqs, amps = wave2.get_frequencies()
+	# plt.plot(freqs, amps)
+	# plt.xlim(0, 1000)
+	# plt.subplot(2,4,7)
+	# freqs, amps = wave3.get_frequencies()
+	# plt.plot(freqs, amps)
+	# plt.subplot(2,4,8)
+	# freqs, amps = wave4.get_frequencies()
+	# plt.plot(freqs, amps)
+	# plt.xlim(0, 1000)	
+	# plt.show()
 
+	wave5 = Chirp(duration = 30)
+	wave5.play_wave()
 
 
 
