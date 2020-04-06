@@ -2,7 +2,7 @@
 # @Author: ZMJ
 # @Date:   2020-03-28 18:26:34
 # @Last Modified by:   ZMJ
-# @Last Modified time: 2020-04-06 17:14:01
+# @Last Modified time: 2020-04-06 17:32:00
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io.wavfile import read as wave_reader
@@ -35,6 +35,14 @@ class Signal(object):
 			window = np.ones_like(self.y_coords)
 		elif window_name == "hamming":
 			window = np.hamming(len(self.y_coords))
+		elif window_name == "hanning":
+			window = np.hanning(len(self.y_coords))
+		elif window_name == "kaiser":
+			window = np.kaiser(len(self.y_coords, 0))##beta = 0 means a square window
+		elif window_name == "bartlett":
+			window = np.bartlett(len(y_coords))
+		elif window_name == "blackman":
+			window = np.blackman(len(y_coords))
 		amps = np.abs(np.fft.fft(window*self.y_coords))
 		##normalization
 		# amps /= len(self.x_coords)
