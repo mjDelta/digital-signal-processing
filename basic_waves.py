@@ -2,7 +2,7 @@
 # @Author: ZMJ
 # @Date:   2020-03-28 18:26:34
 # @Last Modified by:   ZMJ
-# @Last Modified time: 2020-04-05 21:13:09
+# @Last Modified time: 2020-04-06 17:14:01
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io.wavfile import read as wave_reader
@@ -19,25 +19,23 @@ class Signal(object):
 		self.y_coords = y_coords
 		self.y_coords = self.y_coords.astype(np.float32)
 
-	# def get_frequencies(self):
-	# 	fft_size = self.framerate / (1 / self.period)
-	# 	fft_size = int(np.ceil(fft_size)) 
-	# 	amps = np.fft.rfft(self.y_coords[:fft_size]) / fft_size
-	# 	dbs = 20*np.log10(np.clip(np.abs(amps),1e-20,1e100))
-	# 	amps = np.abs(amps)
-	# 	freqs = np.linspace(0, self.framerate//2, fft_size//2+1)
-	# 	return freqs, amps
-	def get_frequencies(self):
+	def get_frequencies(self, window_name = "none"):
 		"""[summary]
 		
 		[description]
 		
 		Arguments:
 			fs {[type]} -- [the sampling frequency for fft]
+			window_name {[type]} -- [there are some windows that already been implemented in numpy, e.g. hamming, bartlett, blackman, hanning, and kaiser]
+
 		"""
 		fft_size = self.framerate
 		freqs = np.linspace(0, fft_size, len(self.x_coords))
-		amps = np.abs(np.fft.fft(self.y_coords))
+		if window_name == "none":
+			window = np.ones_like(self.y_coords)
+		elif window_name == "hamming":
+			window = np.hamming(len(self.y_coords))
+		amps = np.abs(np.fft.fft(window*self.y_coords))
 		##normalization
 		# amps /= len(self.x_coords)
 		##half
@@ -194,32 +192,48 @@ class ExpoChirp(Signal):
 		
 				
 if __name__ == '__main__':
-	wave1 = SineWave()
-	wave2 = SquareWave()
-	wave3 = TriangleWave()
-	wave4 = Chirp()
+	wave1 = SineWave(freq = 20).segment(duration = 3.2)
+	wave2 = SquareWave(freq = 20).segment(duration = 3.7)
+	wave3 = TriangleWave(freq = 20).segment(duration = 3.4)
+	wave4 = Chirp(start_freq = 20, end_freq = 40)
 
-	plt.subplot(2,4,1)
+	plt.subplot(3, 4, 1)
 	plt.plot(wave1.x_coords, wave1.y_coords)
-	plt.subplot(2,4,2)
+	plt.subplot(3, 4, 2)
 	plt.plot(wave2.x_coords, wave2.y_coords)
-	plt.subplot(2,4,3)
+	plt.subplot(3, 4, 3)
 	plt.plot(wave3.x_coords, wave3.y_coords)
-	plt.subplot(2,4,4)
+	plt.subplot(3, 4, 4)
 	plt.plot(wave4.x_coords, wave4.y_coords)
-	plt.subplot(2,4,5)
+	plt.subplot(3, 4, 5)
 	freqs, amps = wave1.get_frequencies()
 	plt.plot(freqs, amps)
-	plt.xlim(0, 1000)
-	plt.subplot(2,4,6)
+	plt.xlim(0, 50)
+	plt.subplot(3, 4, 6)
 	freqs, amps = wave2.get_frequencies()
 	plt.plot(freqs, amps)
 	plt.xlim(0, 1000)
-	plt.subplot(2,4,7)
+	plt.subplot(3, 4, 7)
 	freqs, amps = wave3.get_frequencies()
 	plt.plot(freqs, amps)
-	plt.subplot(2,4,8)
+	plt.subplot(3, 4, 8)
 	freqs, amps = wave4.get_frequencies()
+	plt.plot(freqs, amps)
+	plt.xlim(0, 1000)	
+
+	plt.subplot(3, 4, 9)
+	freqs, amps = wave1.get_frequencies(window_name = "hamming")
+	plt.plot(freqs, amps)
+	plt.xlim(0, 50)
+	plt.subplot(3, 4, 10)
+	freqs, amps = wave2.get_frequencies(window_name = "hamming")
+	plt.plot(freqs, amps)
+	plt.xlim(0, 1000)
+	plt.subplot(3, 4, 11)
+	freqs, amps = wave3.get_frequencies(window_name = "hamming")
+	plt.plot(freqs, amps)
+	plt.subplot(3, 4, 12)
+	freqs, amps = wave4.get_frequencies(window_name = "hamming")
 	plt.plot(freqs, amps)
 	plt.xlim(0, 1000)	
 	plt.show()
