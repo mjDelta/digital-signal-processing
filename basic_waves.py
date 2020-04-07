@@ -2,7 +2,7 @@
 # @Author: ZMJ
 # @Date:   2020-03-28 18:26:34
 # @Last Modified by:   ZMJ
-# @Last Modified time: 2020-04-07 15:02:36
+# @Last Modified time: 2020-04-07 15:47:19
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io.wavfile import read as wave_reader
@@ -51,6 +51,16 @@ class Wave(object):
 		freqs = freqs[:half]
 		amps = amps[:half]
 		return freqs, amps
+
+	def get_power(self, window_name = "none"):
+		freqs, amps = self.get_frequencies(window_name)
+		return freqs, amps*amps
+
+	def get_cumsum_power(self, window_name = "none"):
+		freqs, powers = self.get_power()
+		cp = np.cumsum(powers)
+		cp /= cp[-1]
+		return freqs, cp
 
 	def write_wave(self, save_path):
 		double_channels =  np.zeros((len(self.y_coords), 2))
@@ -202,12 +212,24 @@ class ExpoChirp(Wave):
 
 class UncorrelatedUniformNoise(Wave):
 	"""docstring for UncorrelatedUniformNoise"""
-	def __init__(self, arg):
-		super(UncorrelatedUniformNoise, self).__init__()
-		self.arg = arg
-		
-		
-				
+	def __init__(self, framerate = 11025, amp = 1):
+		super(UncorrelatedUniformNoise, self).__init__(framerate)
+		self.amp = amp
+
+		self.x_coords = np.linspace(0, 1, framerate)
+		self.y_coords = np.random.uniform(-amp, amp, framerate)
+
+class BrownNoise(Wave):
+	"""docstring for BrownNoise"""
+	def __init__(self, framerate = 11025, amp = 1):
+		super(BrownNoise, self).__init__(framerate)
+		self.amp = amp
+
+		self.x_coords = np.linspace(0, 1, framerate)
+		tmp = np.random.uniform(-1, 1, framerate)
+		tmp = np.cumsum(tmp)
+		self.y_coords = 2*amp*((tmp-tmp.min())/(tmp.max()-tmp.min())-0.5)
+
 if __name__ == '__main__':
 	wave1 = SineSignal(freq = 20).segment(duration = 3.2)
 	wave2 = SquareSignal(freq = 20).segment(duration = 3.7)
