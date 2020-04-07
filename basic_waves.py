@@ -2,16 +2,16 @@
 # @Author: ZMJ
 # @Date:   2020-03-28 18:26:34
 # @Last Modified by:   ZMJ
-# @Last Modified time: 2020-04-06 17:32:00
+# @Last Modified time: 2020-04-07 15:02:36
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io.wavfile import read as wave_reader
 from scipy.io.wavfile import write as wave_writer
 import pyaudio
-class Signal(object):
-	"""docstring for Signal"""
+class Wave(object):
+	"""docstring for Wave"""
 	def __init__(self, framerate):
-		super(Signal, self).__init__()
+		super(Wave, self).__init__()
 		self.framerate = framerate
 
 	def set_values(self, x_coords, y_coords):
@@ -58,6 +58,12 @@ class Signal(object):
 		double_channels[:,1] = self.y_coords
 		wave_writer(save_path, self.framerate, double_channels)
 
+	def __add__(self, wave):
+		new_y_coords = self.y_coords + wave.y_coords
+		wave = Wave(self.framerate)
+		wave.set_values(self.x_coords, new_y_coords)
+		return wave
+
 	def play_wave(self):
 		#instantiate PyAudio  
 		p = pyaudio.PyAudio()  
@@ -74,10 +80,10 @@ class Signal(object):
 		#close PyAudio  
 		p.terminate()		
 
-class Wave(Signal):
+class Signal(Wave):
 	"""docstring for ClassName"""
 	def __init__(self, period, framerate):
-		super(Wave, self).__init__(framerate)
+		super(Signal, self).__init__(framerate)
 		self.period = period
 
 	def segment(self, start=0, duration=5):
@@ -93,15 +99,11 @@ class Wave(Signal):
 		min_tick = 1 / self.framerate
 		start_pnt = int(start / min_tick)
 		end_pnt = start_pnt + int(self.period*duration / min_tick)
-		wave = Wave(self.period, self.framerate)	
-		wave.set_values(self.x_coords[start_pnt:end_pnt], self.y_coords[start_pnt:end_pnt])
-		return wave
-
-	def __add__(self, wave):
-		new_y_coords = self.y_coords + wave.y_coords
-		signal = Signal(self.framerate)
-		signal.set_values(self.x_coords, new_y_coords)
+		signal = Signal(self.period, self.framerate)	
+		signal.set_values(self.x_coords[start_pnt:end_pnt], self.y_coords[start_pnt:end_pnt])
 		return signal
+
+
 
 	def get_GCD(self, number1, number2):
 		"""[summary]
@@ -119,8 +121,8 @@ class Wave(Signal):
 			gcd += 1
 		return gcd
 
-class SineWave(Wave):
-	"""docstring for SineWave"""
+class SineSignal(Signal):
+	"""docstring for SineSignal"""
 	def __init__(self, freq = 100, amp = 1., offset = 0., framerate = 11025, duration = 1):
 		"""[summary]
 		return a sine wave pnts in 1 second
@@ -130,7 +132,7 @@ class SineWave(Wave):
 		offset: the reqiured phase difference (angle, in radians)
 		framerate: the required framerate (FPS), representing the number of samplings
 		"""
-		super(SineWave, self).__init__(1/freq, framerate)
+		super(SineSignal, self).__init__(1/freq, framerate)
 		self.amp = amp
 		self.offset = offset
 		self.freq = freq
@@ -140,10 +142,10 @@ class SineWave(Wave):
 		self.y_coords = np.array([amp * np.sin(self.w * x + offset) for x in self.x_coords])
 		self.y_coords=self.y_coords.astype(np.float32)
 
-class TriangleWave(Wave):
-	"""docstring for TriangleWave"""
+class TriangleSignal(Signal):
+	"""docstring for TriangleSignal"""
 	def __init__(self, freq = 100, amp = 1, offset = 0, framerate = 11025, duration = 1):
-		super(TriangleWave, self).__init__(1/freq, framerate)
+		super(TriangleSignal, self).__init__(1/freq, framerate)
 		self.amp = amp
 		self.offset = offset
 		self.freq = freq	
@@ -153,10 +155,10 @@ class TriangleWave(Wave):
 		fracs, _ = np.modf(cycles)
 		self.y_coords =  (fracs - 0.5)/0.5*amp	
 
-class SquareWave(Wave):
-	"""docstring for SquareWave"""
+class SquareSignal(Signal):
+	"""docstring for SquareSignal"""
 	def __init__(self, freq = 100, amp = 1, offset = 0, framerate = 11025, duration = 1):
-		super(SquareWave, self).__init__(1/freq, framerate)
+		super(SquareSignal, self).__init__(1/freq, framerate)
 		self.amp = amp
 		self.offset = offset
 		self.freq = freq	
@@ -166,14 +168,14 @@ class SquareWave(Wave):
 		fracs, _ = np.modf(cycles)
 		self.y_coords =  np.sign(fracs - 0.5)*self.amp
 
-class Chirp(Signal):
+class Chirp(Wave):
 	"""docstring for Chirp"""
 	def __init__(self, start_freq = 220, end_freq = 440, amp = 1, offset = 0, framerate = 11025, duration = 1):
 		super(Chirp, self).__init__(framerate)
 		self.amp = amp
 		self.offset = offset
 
-		##generate chirp signal 
+		##generate chirp wave 
 		self.x_coords = np.linspace(0, duration, duration*framerate)
 		freqs = np.linspace(start_freq, end_freq, duration*framerate-1)
 		dts = np.diff(self.x_coords)
@@ -182,14 +184,14 @@ class Chirp(Signal):
 		phases = np.insert(phases, 0, 0)
 		self.y_coords = self.amp*np.sin(phases)
 
-class ExpoChirp(Signal):
+class ExpoChirp(Wave):
 	"""docstring for ExpoChirp"""
 	def __init__(self, start_freq = 220, end_freq = 440, amp = 1, offset = 0, framerate = 11025, duration = 1):
 		super(ExpoChirp, self).__init__(framerate)
 		self.amp = amp
 		self.offset = offset
 
-		##generate exponential chirp signal 
+		##generate exponential chirp wave 
 		self.x_coords = np.linspace(0, duration, duration*framerate)
 		freqs = np.logspace(np.log10(start_freq), np.log10(end_freq), duration*framerate-1)
 		dts = np.diff(self.x_coords)
@@ -197,12 +199,19 @@ class ExpoChirp(Signal):
 		phases = np.cumsum(dphis)
 		phases = np.insert(phases, 0, 0)
 		self.y_coords = self.amp*np.sin(phases)
+
+class UncorrelatedUniformNoise(Wave):
+	"""docstring for UncorrelatedUniformNoise"""
+	def __init__(self, arg):
+		super(UncorrelatedUniformNoise, self).__init__()
+		self.arg = arg
+		
 		
 				
 if __name__ == '__main__':
-	wave1 = SineWave(freq = 20).segment(duration = 3.2)
-	wave2 = SquareWave(freq = 20).segment(duration = 3.7)
-	wave3 = TriangleWave(freq = 20).segment(duration = 3.4)
+	wave1 = SineSignal(freq = 20).segment(duration = 3.2)
+	wave2 = SquareSignal(freq = 20).segment(duration = 3.7)
+	wave3 = TriangleSignal(freq = 20).segment(duration = 3.4)
 	wave4 = Chirp(start_freq = 20, end_freq = 40)
 
 	plt.subplot(3, 4, 1)

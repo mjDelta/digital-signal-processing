@@ -2,11 +2,11 @@
 # @Author: ZMJ
 # @Date:   2020-04-05 20:26:31
 # @Last Modified by:   ZMJ
-# @Last Modified time: 2020-04-05 21:31:31
+# @Last Modified time: 2020-04-07 15:05:53
 
 import sys
 sys.path.append('../')
-from basic_waves import Chirp, Signal
+from basic_waves import Chirp, Wave
 import numpy as np
 from matplotlib import pyplot as plt
 import seaborn as sn
@@ -27,9 +27,9 @@ for time_part in time_parts[1:]:
 
 	xs = wave.x_coords[start:end]
 	ys = wave.y_coords[start:end]
-	tmp_signal = Signal(wave.framerate)
-	tmp_signal.set_values(xs, ys)
-	freqs, amps = tmp_signal.get_frequencies()
+	tmp_wave = Wave(wave.framerate)
+	tmp_wave.set_values(xs, ys)
+	freqs, amps = tmp_wave.get_frequencies()
 
 	last = time_part
 
