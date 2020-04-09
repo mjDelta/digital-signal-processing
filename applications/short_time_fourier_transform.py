@@ -2,7 +2,7 @@
 # @Author: ZMJ
 # @Date:   2020-04-05 20:26:31
 # @Last Modified by:   ZMJ
-# @Last Modified time: 2020-04-07 15:05:53
+# @Last Modified time: 2020-04-09 12:18:14
 
 import sys
 sys.path.append('../')
@@ -17,6 +17,7 @@ def normalization(arr):
 	return norm
 
 time_length = 256
+window_name = "hamming" ## window types: none for applying no window, hamming, hanning, kaiser, bartlett, blackman
 wave = Chirp()
 time_parts = np.arange(0, wave.framerate, time_length)
 
@@ -29,7 +30,7 @@ for time_part in time_parts[1:]:
 	ys = wave.y_coords[start:end]
 	tmp_wave = Wave(wave.framerate)
 	tmp_wave.set_values(xs, ys)
-	freqs, amps = tmp_wave.get_frequencies()
+	freqs, amps = tmp_wave.get_frequencies(window_name = window_name)
 
 	last = time_part
 
