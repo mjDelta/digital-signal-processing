@@ -2,7 +2,7 @@
 # @Author: ZMJ
 # @Date:   2020-03-28 18:26:34
 # @Last Modified by:   ZMJ
-# @Last Modified time: 2020-04-07 15:47:19
+# @Last Modified time: 2020-04-09 12:08:03
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io.wavfile import read as wave_reader
@@ -19,7 +19,7 @@ class Wave(object):
 		self.y_coords = y_coords
 		self.y_coords = self.y_coords.astype(np.float32)
 
-	def get_frequencies(self, window_name = "none"):
+	def get_frequencies(self, window_name = "none", full = False):
 		"""[summary]
 		
 		[description]
@@ -44,12 +44,11 @@ class Wave(object):
 		elif window_name == "blackman":
 			window = np.blackman(len(y_coords))
 		amps = np.abs(np.fft.fft(window*self.y_coords))
-		##normalization
-		# amps /= len(self.x_coords)
 		##half
-		half = len(self.x_coords)//2
-		freqs = freqs[:half]
-		amps = amps[:half]
+		if not full:
+			half = len(self.x_coords)//2
+			freqs = freqs[:half]
+			amps = amps[:half]
 		return freqs, amps
 
 	def get_power(self, window_name = "none"):
@@ -229,6 +228,29 @@ class BrownNoise(Wave):
 		tmp = np.random.uniform(-1, 1, framerate)
 		tmp = np.cumsum(tmp)
 		self.y_coords = 2*amp*((tmp-tmp.min())/(tmp.max()-tmp.min())-0.5)
+
+class PinkNoise(Wave):
+	"""docstring for PinkNoise"""
+	def __init__(self, framerate = 11025, amp = 1, beta = 1):
+		super(PinkNoise, self).__init__(framerate)
+		self.amp = amp
+
+		## generate white noise
+		uun = UncorrelatedUniformNoise(framerate, amp)
+		uun_ys = uun.y_coords
+
+		## apply pink filter to frequencies
+		freqs, amps = uun.get_frequencies(full = True)
+		denom = freqs**(beta/2)
+		denom[0] = 1
+		amps /= denom
+
+		## transform to time domain
+		self.y_coords = np.fft.ifft(amps)
+		self.x_coords = np.arange(len(self.y_coords))/framerate
+
+		print(len(self.y_coords), len(self.x_coords))
+
 
 if __name__ == '__main__':
 	wave1 = SineSignal(freq = 20).segment(duration = 3.2)
