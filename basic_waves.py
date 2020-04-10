@@ -2,7 +2,7 @@
 # @Author: ZMJ
 # @Date:   2020-03-28 18:26:34
 # @Last Modified by:   ZMJ
-# @Last Modified time: 2020-04-09 12:08:03
+# @Last Modified time: 2020-04-10 10:27:10
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io.wavfile import read as wave_reader
@@ -72,6 +72,18 @@ class Wave(object):
 		wave = Wave(self.framerate)
 		wave.set_values(self.x_coords, new_y_coords)
 		return wave
+
+	def compute_autocorr(self):
+		lags = np.arange(len(self.y_coords)//2)
+		corrs = [self.serial_autocorr(lag) for lag in lags]
+		return lags, corrs
+
+	def serial_autocorr(self, lag):
+		length = len(self.y_coords)
+		y1 = self.y_coords[lag:]
+		y2 = self.y_coords[:length-lag]
+		corr = np.corrcoef(y1, y2, ddof=0)
+		return corr[0,1]
 
 	def play_wave(self):
 		#instantiate PyAudio  
@@ -248,8 +260,6 @@ class PinkNoise(Wave):
 		## transform to time domain
 		self.y_coords = np.fft.ifft(amps)
 		self.x_coords = np.arange(len(self.y_coords))/framerate
-
-		print(len(self.y_coords), len(self.x_coords))
 
 
 if __name__ == '__main__':
