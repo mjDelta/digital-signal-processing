@@ -2,7 +2,7 @@
 # @Author: ZMJ
 # @Date:   2020-03-28 18:26:34
 # @Last Modified by:   ZMJ
-# @Last Modified time: 2020-04-10 10:27:10
+# @Last Modified time: 2020-04-11 17:15:52
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io.wavfile import read as wave_reader
@@ -99,7 +99,45 @@ class Wave(object):
 		stream.stop_stream()  
 		stream.close()  
 		#close PyAudio  
-		p.terminate()		
+		p.terminate()	
+
+	def discrete_cosine_synthesize_sumption(self, amps, fs):
+		"""[summary] discrete cosine synthesize by simply sumption of multiple cosine signals
+		
+		[description]
+		
+		Arguments:
+			amps {[type]} -- [description] series of amptitudes
+			fs {[type]} -- [description] series of frequencies
+			ts {[type]} -- [description] series of timepoints
+		"""
+		wave = SineSignal(freq = fs[0], amp = amps[0], framerate = self.framerate, offset = np.pi/2)
+		for f,a in zip(fs[1:], amps[1:]):
+			w = SineSignal(freq = f, amp = a, framerate = self.framerate, offset = np.pi/2)
+			wave = wave+w
+		return wave
+
+	def discrete_cosine_synthesize_linalg(self, amps, fs):
+		"""[summary] discrete cosine synthesize by linear algebra
+		
+		[description]
+		
+		Arguments:
+			amps {[type]} -- [description]
+			fs {[type]} -- [description]
+			framerate {[type]} -- [description]
+		
+		Returns:
+			[type] -- [description]
+		"""
+		x_coords = np.linspace(0, 1, self.framerate)
+		args = np.outer(x_coords, fs)
+		M = np.cos(2*np.pi*args)
+		y_coords = np.dot(M, amps)
+
+		wave = Wave(self.framerate)
+		wave.set_values(x_coords, y_coords)
+		return wave
 
 class Signal(Wave):
 	"""docstring for ClassName"""
