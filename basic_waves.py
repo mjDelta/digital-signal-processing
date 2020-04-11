@@ -2,7 +2,7 @@
 # @Author: ZMJ
 # @Date:   2020-03-28 18:26:34
 # @Last Modified by:   ZMJ
-# @Last Modified time: 2020-04-11 17:15:52
+# @Last Modified time: 2020-04-11 17:47:48
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io.wavfile import read as wave_reader
@@ -13,6 +13,8 @@ class Wave(object):
 	def __init__(self, framerate):
 		super(Wave, self).__init__()
 		self.framerate = framerate
+		self.y_coords = -1
+		self.x_coords = -1
 
 	def set_values(self, x_coords, y_coords):
 		self.x_coords = x_coords
@@ -138,6 +140,16 @@ class Wave(object):
 		wave = Wave(self.framerate)
 		wave.set_values(x_coords, y_coords)
 		return wave
+	def discrete_consine_tranform_iv(self):
+		if not isinstance(self.y_coords, np.ndarray):
+			raise ValueError("Initialize y_coords first!")
+		N = len(self.y_coords)
+		ts = (0.5+np.arange(N))/N
+		freqs = (0.5+np.arange(N))/2
+		args = np.outer(ts, freqs)
+		M = np.cos(2*np.pi*args)
+		amps = np.dot(M.transpose(), self.y_coords)/2
+		return freqs, amps
 
 class Signal(Wave):
 	"""docstring for ClassName"""
